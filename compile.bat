@@ -1,0 +1,1 @@
+g++ TTT.cpp src/gl.c -o TTT.exe -Isrc/include -Lsrc/lib -lglfw3dll -Iglad/include
