@@ -6,8 +6,6 @@
 #include <fstream>
 #include <sstream>
 
-//CHASE WAZ HERE
-
 //#Defines--------------------------------------------------------------
 const double targetFrameTime = 1.0 / 150.0;
 
