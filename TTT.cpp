@@ -7,14 +7,29 @@
 #include <sstream>
 
 //#Defines--------------------------------------------------------------
-const double targetFrameTime = 1.0 / 150.0;
+const double targetFrameTime = 1.0 / 180.0;
 
 //Variables-------------------------------------------------------------
+int squarex;
+int squarey;
+
+int slidex;
+int slidey;
+
 double frametime;
 double FPStime;
 int FPS;
 unsigned int buffer;
 //Functions-------------------------------------------------------------
+void gameloop(){
+    if (FPStime <= glfwGetTime()-1){
+        printf("%i", FPS);
+        FPStime = glfwGetTime();
+        FPS = 0;
+    }else{FPS++;}
+}
+
+
 
 struct shader_program_source {
     std::string VertexSource;
@@ -24,12 +39,6 @@ struct shader_program_source {
 
 static shader_program_source parseshader(const std::string file_path){
     std::ifstream stream(file_path);
-
-    if (stream.is_open()) {
-        printf("040, file found >:)\n");
-    }else {
-        printf("File not found!\n");
-    }
 
     enum class shadertype
     {
@@ -168,13 +177,15 @@ int main() { //---------------------------------------------------------
 
     unsigned int shader = createshader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
+
+    frametime = glfwGetTime();
+    FPStime = glfwGetTime();
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
-        if (FPStime <= glfwGetTime()-1){
-            printf("%i", FPS);
-            FPStime = glfwGetTime();
-            FPS = 0;
-        }else{FPS++;}
+        while (glfwGetTime() - targetFrameTime >= frametime){
+            gameloop();
+            frametime += targetFrameTime;
+        }
 
 
         // Render!!
