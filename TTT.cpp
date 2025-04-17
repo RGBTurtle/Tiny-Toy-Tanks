@@ -1,18 +1,26 @@
+#include <vector>
 #include <stdio.h>
-#include "src/include/glad/gl.h"
-#include "src/include/GLFW/glfw3.h"
-#include "vertexdata.h"
 #include <string>
 #include <fstream>
 #include <sstream>
 
+#include "src/include/glad/gl.h"
+#include "src/include/GLFW/glfw3.h"
+#include "vertexdata.h"
+
+#include "src/include/glm/glm.hpp"
+#include "src/include/glm/gtc/matrix_transform.hpp"
+//stucts/classes
+
 //#Defines--------------------------------------------------------------
+int windowWidth = 800;
+int windowHeight = 800;
+
 const double targetFrameTime = 1.0 / 180.0;
 
 //Variables-------------------------------------------------------------
 int squarex;
 int squarey;
-
 int slidex;
 int slidey;
 
@@ -21,12 +29,25 @@ double FPStime;
 int FPS;
 unsigned int buffer;
 //Functions-------------------------------------------------------------
+void slidehandle(){
+    if (slidex > 0){
+        slidex--;        
+    }else if(slidex < 0){
+        slidex++;
+    }
+
+    if (slidey > 0){
+        slidey--;        
+    }else if(slidey < 0){
+        slidey++;
+    }
+    squarex += slidex;
+    squarey += slidey;
+}
+
 void gameloop(){
-    if (FPStime <= glfwGetTime()-1){
-        printf("%i", FPS);
-        FPStime = glfwGetTime();
-        FPS = 0;
-    }else{FPS++;}
+    glfwPollEvents();
+    slidehandle();
 }
 
 
@@ -61,6 +82,7 @@ static shader_program_source parseshader(const std::string file_path){
             ss[int(type)] << line << '\n';
         }
     }
+    glm::mat4x4 projection;
 
     return { ss[0].str(), ss[1].str() };
 }
@@ -116,6 +138,24 @@ void error_callback(int error, const char* description) //GLFW
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
+/*W*/static void keyw(GLFWwindow* window, int key, int scancode, int action, int mods){
+    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+        slidey++;
+}
+/*A*/static void keya(GLFWwindow* window, int key, int scancode, int action, int mods){
+    if (key == GLFW_KEY_A && action == GLFW_PRESS)
+        slidex--;
+}
+/*S*/static void keys(GLFWwindow* window, int key, int scancode, int action, int mods){
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+        slidey--;
+}
+/*D*/static void keyd(GLFWwindow* window, int key, int scancode, int action, int mods){
+    if (key == GLFW_KEY_D && action == GLFW_PRESS)
+        slidex++;
+};
+
+
 
 
 int main() { //---------------------------------------------------------
@@ -131,7 +171,7 @@ int main() { //---------------------------------------------------------
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     GLFWwindow* window;
-    window = glfwCreateWindow(750, 750, "Tiny Tanks", NULL, NULL);  //GLFW
+    window = glfwCreateWindow(windowWidth, windowHeight, "Tiny Tanks", NULL, NULL);  //GLFW
     if (!window){
 
         printf("window failed to create!");
@@ -171,12 +211,27 @@ int main() { //---------------------------------------------------------
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    float rotate = glm::radians(45.0f);
+    glm::mat4 proj = glm::ortho(float(-windowWidth * 0.5), float(windowWidth * 0.5), float(-windowHeight * 0.5), float(windowHeight * 0.5));
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), rotate, glm::vec3(0.0f, 0.0f, 1.0f));
+
+
+    glm::mat4 MVP = proj * view * model;
+    //uniforms
+
+
     
     //create shaders
     shader_program_source source = parseshader("res/shaders/Basic.glsl");
 
     unsigned int shader = createshader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
+
+    GLint location = glGetUniformLocation(shader, "u_MVP");
+
+    glUniformMatrix4fv(location, 1, GL_FALSE, &MVP[0][0]);
 
     frametime = glfwGetTime();
     FPStime = glfwGetTime();
@@ -187,12 +242,16 @@ int main() { //---------------------------------------------------------
             frametime += targetFrameTime;
         }
 
+        glfwGetWindowFrameSize(window, NULL, &windowHeight, &windowWidth, NULL);
+        model = glm::rotate(glm::mat4(1.0f), float(glm::radians(glfwGetTime() * 50)), glm::vec3(0.0f, 0.0f, 1.0f));
+        MVP = proj * view * model;
+        glUniformMatrix4fv(glGetUniformLocation(shader, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
 
         // Render!!
+        glClearColor(0.1,0.1,0.1,1.0);
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     glDeleteProgram(shader);
