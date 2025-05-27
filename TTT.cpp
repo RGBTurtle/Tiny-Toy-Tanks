@@ -13,43 +13,80 @@
 //stucts/classes
 
 //#Defines--------------------------------------------------------------
-int windowWidth = 800;
-int windowHeight = 800;
+void pollKeys();
+GLFWwindow* window;
 
 const double targetFrameTime = 1.0 / 180.0;
 
 //Variables-------------------------------------------------------------
-int squarex;
-int squarey;
-int slidex;
-int slidey;
+double squareRot;
+double squareRotGoal;
+
+double camDeltax;
+double camDeltay;
+
+int windowWidth = 1920;
+int windowHeight = 1080;
+glm::vec2 thrust = glm::vec2(0.0f, 0.0f);
+glm::vec2 camerapos = glm::vec2(0.0f, 0.0f);
+glm::vec2 slide = glm::vec2(0.0f, 0.0f);
+double squareRotSpeed = 0.005 * M_PI;
 
 double frametime;
 double FPStime;
 int FPS;
 unsigned int buffer;
 //Functions-------------------------------------------------------------
-void slidehandle(){
-    if (slidex > 0){
-        slidex--;        
-    }else if(slidex < 0){
-        slidex++;
+void pollKeys(){
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){glfwSetWindowShouldClose(window, GLFW_TRUE);}
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){thrust.y =  1;}
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){thrust.x = -1;}
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){thrust.y = -1;}
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){thrust.x =  1;}
+}
+
+void tankTurnFasterFinder(){
+    if (squareRotGoal < 0){squareRotGoal += 2.0f * M_PI;}
+    if (abs(squareRot - squareRotGoal) > 0.66f * M_PI){
+        if (squareRotGoal < M_PI){squareRotGoal += M_PI;} else {squareRotGoal -= M_PI;}
+
+        if (abs(squareRot - squareRotGoal) > 0.34 * M_PI){
+            if (squareRot < M_PI){squareRot += M_PI;} else {squareRot -= M_PI;}
+        }
     }
 
-    if (slidey > 0){
-        slidey--;        
-    }else if(slidey < 0){
-        slidey++;
+    if (abs(squareRot - squareRotGoal) < squareRotSpeed){
+        squareRot = squareRotGoal;
+        //printf("||%f||", squareRotGoal);
+    } else if (squareRot > squareRotGoal) {
+        squareRot -= squareRotSpeed;
+    } else {
+        squareRot += squareRotSpeed;
     }
-    squarex += slidex;
-    squarey += slidey;
+};
+
+void slidehandle(){
+   if (glm::length(thrust) > 0.0f){thrust = glm::normalize(thrust);}
+   squareRotGoal = atan2(thrust.x, thrust.y);
+   if (glm::length(thrust) <= 0.0f){squareRotGoal = squareRot;}
+   tankTurnFasterFinder();
+
+   camerapos.x += thrust.x * 12;
+   camerapos.y += thrust.y * 12;
+   thrust = glm::vec2(0.0f, 0.0f);
 }
+
+
+
+
+
+
 
 void gameloop(){
-    glfwPollEvents();
+    pollKeys();
     slidehandle();
+    //printf("|%f|", squareRotGoal);
 }
-
 
 
 struct shader_program_source {
@@ -134,32 +171,18 @@ void error_callback(int error, const char* description) //GLFW
 }
 
 //Keys------------------------------------------------------------------
-/*escape*/static void escape(GLFWwindow* window, int key, int scancode, int action, int mods){
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+
+void drawObject(unsigned int va, unsigned int ib){
+    glBindVertexArray(va);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 }
-/*W*/static void keyw(GLFWwindow* window, int key, int scancode, int action, int mods){
-    if (key == GLFW_KEY_W && action == GLFW_PRESS)
-        slidey++;
-}
-/*A*/static void keya(GLFWwindow* window, int key, int scancode, int action, int mods){
-    if (key == GLFW_KEY_A && action == GLFW_PRESS)
-        slidex--;
-}
-/*S*/static void keys(GLFWwindow* window, int key, int scancode, int action, int mods){
-    if (key == GLFW_KEY_S && action == GLFW_PRESS)
-        slidey--;
-}
-/*D*/static void keyd(GLFWwindow* window, int key, int scancode, int action, int mods){
-    if (key == GLFW_KEY_D && action == GLFW_PRESS)
-        slidex++;
-};
 
 
 
 
 int main() { //---------------------------------------------------------
-
     //intialize GLFW
 
     if (!glfwInit()){   //GLFW
@@ -170,7 +193,8 @@ int main() { //---------------------------------------------------------
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window;
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
     window = glfwCreateWindow(windowWidth, windowHeight, "Tiny Tanks", NULL, NULL);  //GLFW
     if (!window){
 
@@ -186,7 +210,6 @@ int main() { //---------------------------------------------------------
         return 0;
     }
 
-    glfwSetKeyCallback(window, escape);
     glfwSwapInterval(1);
 
     //OpenGL buffer binding
@@ -211,12 +234,13 @@ int main() { //---------------------------------------------------------
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    float rotate = glm::radians(45.0f);
-    glm::mat4 proj = glm::ortho(float(-windowWidth * 0.5), float(windowWidth * 0.5), float(-windowHeight * 0.5), float(windowHeight * 0.5));
-    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), rotate, glm::vec3(0.0f, 0.0f, 1.0f));
-
+    //glm::mat4 proj = glm::ortho(float(-windowWidth), float(windowWidth), float(-windowHeight), float(windowHeight), -800.0f, 800.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(90.0f), float(windowWidth) / float(windowHeight), 0.1f, 12800.0f);
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2400.0f));
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f));
+    view = glm::rotate(view, glm::radians(80.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     glm::mat4 MVP = proj * view * model;
     //uniforms
@@ -233,24 +257,37 @@ int main() { //---------------------------------------------------------
 
     glUniformMatrix4fv(location, 1, GL_FALSE, &MVP[0][0]);
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    glEnable(GL_DEPTH_TEST);
+
+    // glEnable(GL_CULL_FACE);  
+    // glFrontFace(GL_CCW);  
+
     frametime = glfwGetTime();
     FPStime = glfwGetTime();
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
         while (glfwGetTime() - targetFrameTime >= frametime){
+
+
             gameloop();
             frametime += targetFrameTime;
         }
+        
+        
+        
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(float(camerapos[0]), sin(glfwGetTime()*6)*15, float(-camerapos[1])));
+        model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
-        glfwGetWindowFrameSize(window, NULL, &windowHeight, &windowWidth, NULL);
-        model = glm::rotate(glm::mat4(1.0f), float(glm::radians(glfwGetTime() * 50)), glm::vec3(0.0f, 0.0f, 1.0f));
         MVP = proj * view * model;
         glUniformMatrix4fv(glGetUniformLocation(shader, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
 
         // Render!!
-        glClearColor(0.1,0.1,0.1,1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        glfwPollEvents();
+        glClearColor(0.15,0.15,0.15,1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        drawObject(buffer, IBO);
         glfwSwapBuffers(window);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
