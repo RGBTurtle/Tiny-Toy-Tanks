@@ -28,64 +28,51 @@ double camDeltay;
 int windowWidth = 1920;
 int windowHeight = 1080;
 glm::vec2 thrust = glm::vec2(0.0f, 0.0f);
-glm::vec2 camerapos = glm::vec2(0.0f, 0.0f);
+glm::vec2 tankpos = glm::vec2(0.0f, 0.0f);
 glm::vec2 slide = glm::vec2(0.0f, 0.0f);
-double squareRotSpeed = 0.005 * M_PI;
+double squareRotSpeed = 0.0075 * M_PI;
+float movSpeed;
 
 double frametime;
 double FPStime;
-int FPS;
 unsigned int buffer;
 //Functions-------------------------------------------------------------
-void pollKeys(){
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){glfwSetWindowShouldClose(window, GLFW_TRUE);}
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){thrust.y =  1;}
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){thrust.x = -1;}
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){thrust.y = -1;}
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){thrust.x =  1;}
-}
 
 void tankTurnFasterFinder(){
     if (squareRotGoal < 0){squareRotGoal += 2.0f * M_PI;}
-    if (abs(squareRot - squareRotGoal) > 0.66f * M_PI){
+
+    if (abs(squareRot - squareRotGoal) > (0.6f * M_PI)){
         if (squareRotGoal < M_PI){squareRotGoal += M_PI;} else {squareRotGoal -= M_PI;}
 
-        if (abs(squareRot - squareRotGoal) > 0.34 * M_PI){
+        if (abs(squareRot - squareRotGoal) > (0.4f * M_PI)){
             if (squareRot < M_PI){squareRot += M_PI;} else {squareRot -= M_PI;}
         }
     }
-
-    if (abs(squareRot - squareRotGoal) < squareRotSpeed){
-        squareRot = squareRotGoal;
-        //printf("||%f||", squareRotGoal);
-    } else if (squareRot > squareRotGoal) {
+    
+    if (squareRot > squareRotGoal + squareRotSpeed) {
         squareRot -= squareRotSpeed;
-    } else {
+        movSpeed = movSpeed * 0.6;
+    } else if (squareRot < squareRotGoal - squareRotSpeed) {
         squareRot += squareRotSpeed;
-    }
+        movSpeed = movSpeed * 0.6;
+    } else {squareRot = squareRotGoal;}
 };
 
-void slidehandle(){
-   if (glm::length(thrust) > 0.0f){thrust = glm::normalize(thrust);}
-   squareRotGoal = atan2(thrust.x, thrust.y);
-   if (glm::length(thrust) <= 0.0f){squareRotGoal = squareRot;}
-   tankTurnFasterFinder();
+void movHandle(){
+    movSpeed = 12;
+    if (glm::length(thrust) > 0.0f){thrust = glm::normalize(thrust);}
+    squareRotGoal = atan2(thrust.x, thrust.y);
+    if (glm::length(thrust) <= 0.0f){squareRotGoal = squareRot;}
+    tankTurnFasterFinder();
 
-   camerapos.x += thrust.x * 12;
-   camerapos.y += thrust.y * 12;
-   thrust = glm::vec2(0.0f, 0.0f);
+    tankpos.x += thrust.x * movSpeed;
+    tankpos.y += thrust.y * movSpeed;
+    thrust = glm::vec2(0.0f, 0.0f);
 }
-
-
-
-
-
-
 
 void gameloop(){
     pollKeys();
-    slidehandle();
-    //printf("|%f|", squareRotGoal);
+    movHandle();
 }
 
 
@@ -171,6 +158,18 @@ void error_callback(int error, const char* description) //GLFW
 }
 
 //Keys------------------------------------------------------------------
+void pollKeys(){
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){glfwSetWindowShouldClose(window, GLFW_TRUE);}
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){thrust.y =  1;}
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){thrust.x = -1;}
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){thrust.y = -1;}
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){thrust.x =  1;}
+}
+
+
+
+
+
 
 
 void drawObject(unsigned int va, unsigned int ib){
@@ -256,7 +255,7 @@ int main() { //---------------------------------------------------------
     GLint location = glGetUniformLocation(shader, "u_MVP");
 
     glUniformMatrix4fv(location, 1, GL_FALSE, &MVP[0][0]);
-
+ 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
@@ -277,7 +276,7 @@ int main() { //---------------------------------------------------------
         
         
         
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(float(camerapos[0]), sin(glfwGetTime()*6)*15, float(-camerapos[1])));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*6)*15, float(-tankpos[1])));
         model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
         MVP = proj * view * model;
