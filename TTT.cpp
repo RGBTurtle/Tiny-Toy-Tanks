@@ -7,12 +7,17 @@
 #include "src/include/glad/gl.h"
 #include "src/include/GLFW/glfw3.h"
 #include "vertexdata.h"
+#include "trinkets.hpp"
 
 #include "src/include/glm/glm.hpp"
 #include "src/include/glm/gtc/matrix_transform.hpp"
 //stucts/classes
 
 //#Defines--------------------------------------------------------------
+unsigned int shader;
+glm::mat4 proj;
+glm::mat4 view;
+glm::mat4 MVP;
 void pollKeys();
 GLFWwindow* window;
 
@@ -22,21 +27,24 @@ const double targetFrameTime = 1.0 / 180.0;
 double squareRot;
 double squareRotGoal;
 
-double camDeltax;
-double camDeltay;
-
 int windowWidth = 1920;
 int windowHeight = 1080;
 glm::vec2 thrust = glm::vec2(0.0f, 0.0f);
 glm::vec2 tankpos = glm::vec2(0.0f, 0.0f);
 glm::vec2 slide = glm::vec2(0.0f, 0.0f);
-double squareRotSpeed = 0.0075 * M_PI;
+double squareRotSpeed = 0.006 * M_PI;
 float movSpeed;
 
 double frametime;
-double FPStime;
 unsigned int buffer;
 //Functions-------------------------------------------------------------
+void boundWalls(){
+    if (tankpos.x > 750.0f){tankpos.x -= tankpos.x - 750.0f;}
+    if (tankpos.x < -750.0f){tankpos.x -= tankpos.x + 750.0f;}
+    if (tankpos.y > 750.0f){tankpos.y -= tankpos.y - 750.0f;}
+    if (tankpos.y < -750.0f){tankpos.y -= tankpos.y + 750.0f;}
+}
+
 
 void tankTurnFasterFinder(){
     if (squareRotGoal < 0){squareRotGoal += 2.0f * M_PI;}
@@ -51,22 +59,32 @@ void tankTurnFasterFinder(){
     
     if (squareRot > squareRotGoal + squareRotSpeed) {
         squareRot -= squareRotSpeed;
-        movSpeed = movSpeed * 0.6;
+        movSpeed -= 12;
     } else if (squareRot < squareRotGoal - squareRotSpeed) {
         squareRot += squareRotSpeed;
-        movSpeed = movSpeed * 0.6;
+        movSpeed -= 12;
     } else {squareRot = squareRotGoal;}
 };
 
 void movHandle(){
-    movSpeed = 12;
+    movSpeed = 15;
+    //proform all additive movement buffs
+    if (goldenRodDust.have){movSpeed += 3;}
+
+
+    //proform all multiplicative movement buffs
+    if (supercharger.have){movSpeed *= 1.15;}
+    
+
+    //-----
     if (glm::length(thrust) > 0.0f){thrust = glm::normalize(thrust);}
     squareRotGoal = atan2(thrust.x, thrust.y);
     if (glm::length(thrust) <= 0.0f){squareRotGoal = squareRot;}
     tankTurnFasterFinder();
 
-    tankpos.x += thrust.x * movSpeed;
-    tankpos.y += thrust.y * movSpeed;
+    tankpos.x += thrust.x * movSpeed * 0.25;
+    tankpos.y += thrust.y * movSpeed * 0.25;
+    boundWalls();
     thrust = glm::vec2(0.0f, 0.0f);
 }
 
@@ -164,6 +182,7 @@ void pollKeys(){
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){thrust.x = -1;}
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){thrust.y = -1;}
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){thrust.x =  1;}
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){supercharger.have, goldenRodDust.have = 1;}
 }
 
 
@@ -172,7 +191,9 @@ void pollKeys(){
 
 
 
-void drawObject(unsigned int va, unsigned int ib){
+void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib){
+    MVP = proj * view * objmodel;
+    glUniformMatrix4fv(glGetUniformLocation(shader, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
     glBindVertexArray(va);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
@@ -193,6 +214,7 @@ int main() { //---------------------------------------------------------
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 12);
 
     window = glfwCreateWindow(windowWidth, windowHeight, "Tiny Tanks", NULL, NULL);  //GLFW
     if (!window){
@@ -235,9 +257,8 @@ int main() { //---------------------------------------------------------
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    //glm::mat4 proj = glm::ortho(float(-windowWidth), float(windowWidth), float(-windowHeight), float(windowHeight), -800.0f, 800.0f);
     glm::mat4 proj = glm::perspective(glm::radians(90.0f), float(windowWidth) / float(windowHeight), 0.1f, 12800.0f);
-    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2400.0f));
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1100.0f));
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f));
     view = glm::rotate(view, glm::radians(80.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -259,12 +280,9 @@ int main() { //---------------------------------------------------------
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
-
-    // glEnable(GL_CULL_FACE);  
-    // glFrontFace(GL_CCW);  
+    glEnable(GL_MULTISAMPLE);  
 
     frametime = glfwGetTime();
-    FPStime = glfwGetTime();
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
         while (glfwGetTime() - targetFrameTime >= frametime){
@@ -274,9 +292,7 @@ int main() { //---------------------------------------------------------
             frametime += targetFrameTime;
         }
         
-        
-        
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*6)*15, float(-tankpos[1])));
+        //model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1])));
         model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
         MVP = proj * view * model;
@@ -284,9 +300,9 @@ int main() { //---------------------------------------------------------
 
         // Render!!
         glfwPollEvents();
-        glClearColor(0.15,0.15,0.15,1.0);
+        glClearColor(0.1,0.1,0.1,1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawObject(buffer, IBO);
+        drawObject(glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1]))), buffer, IBO);
         glfwSwapBuffers(window);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
