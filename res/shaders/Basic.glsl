@@ -12,7 +12,7 @@ void main()
 {
     gl_Position = u_MVP * vec4(position, 1.0);
     ourColor = color;
-}  
+}
 
 #shader fragment
 #version 330 core

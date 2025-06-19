@@ -11,6 +11,10 @@
 
 #include "src/include/glm/glm.hpp"
 #include "src/include/glm/gtc/matrix_transform.hpp"
+
+#include "src/include/assimp/Importer.hpp"
+#include "src/include/assimp/scene.h"
+#include "src/include/assimp/postprocess.h"
 //stucts/classes
 
 //#Defines--------------------------------------------------------------
@@ -292,7 +296,7 @@ int main() { //---------------------------------------------------------
             frametime += targetFrameTime;
         }
         
-        //model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1])));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1])));
         model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
         MVP = proj * view * model;
