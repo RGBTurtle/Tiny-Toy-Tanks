@@ -3,6 +3,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+//#include <vector>
+#include <stdint.h>
 
 #include "src/include/glad/gl.h"
 #include "src/include/GLFW/glfw3.h"
@@ -50,17 +52,15 @@ void boundWalls(){
 }
 
 
-void tankTurnFasterFinder(){
-    if (squareRotGoal < 0){squareRotGoal += 2.0f * M_PI;}
-
-    if (abs(squareRot - squareRotGoal) > (0.6f * M_PI)){
-        if (squareRotGoal < M_PI){squareRotGoal += M_PI;} else {squareRotGoal -= M_PI;}
-
-        if (abs(squareRot - squareRotGoal) > (0.4f * M_PI)){
-            if (squareRot < M_PI){squareRot += M_PI;} else {squareRot -= M_PI;}
-        }
+void tankTurnFasterFinder() {
+    //NOT CHASE ROTATE FIX
+    if (abs(squareRot - squareRotGoal) > M_PI) { 
+        if (abs(squareRot - squareRotGoal + M_PI * 2) > abs(squareRot - squareRotGoal - M_PI * 2)) { squareRot = squareRot - M_PI * 2; } else { squareRot = squareRot + M_PI * 2; } 
     }
-    
+    if (abs(squareRot - squareRotGoal) > M_PI * 0.4) { 
+        if (abs(squareRot - squareRotGoal + M_PI) > abs(squareRot - squareRotGoal - M_PI)) { squareRotGoal += M_PI; } else { squareRotGoal -= M_PI; } 
+    }
+
     if (squareRot > squareRotGoal + squareRotSpeed) {
         squareRot -= squareRotSpeed;
         movSpeed -= 12;

@@ -1,15 +1,35 @@
-float vertices[] = {
-    //positions                  //colours
-    -50.0f, -50.0f, -200.0f,   1.0f, 1.0f, 1.0f, //0
-    +50.0f, -50.0f, -50.0f,   1.0f, 1.0f, 1.0f, //1
-    -50.0f, +50.0f, -50.0f,   1.0f, 1.0f, 1.0f, //2
-    +50.0f, +50.0f, -50.0f,   1.0f, 1.0f, 1.0f, //3
-    -50.0f, -50.0f, +50.0f,   0.0f, 0.0f, 0.0f, //4
-    +50.0f, -50.0f, +50.0f,   0.0f, 0.0f, 0.0f, //5
-    -50.0f, +50.0f, +50.0f,   0.0f, 0.0f, 0.0f, //6
-    +50.0f, +50.0f, +50.0f,   0.0f, 0.0f, 0.0f, //7
+#include "src/include/glm/glm.hpp"
+#include "src/include/glm/gtc/matrix_transform.hpp"
+#include <string>
+#include "src/include/assimp/Importer.hpp"
+#include "src/include/assimp/scene.h"
+#include "src/include/assimp/postprocess.h"
+#include <vector>
+
+struct vertex{
+    glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec2 texCoords = glm::vec2(0.0f, 0.0f);
+    glm::vec3 normal = glm::vec3(0.0f, 0.0f, 0.0f);
 };
 
+struct texture{
+    unsigned int id;
+    std::string type;
+    
+};
+
+float vertices[] = {
+    //positions                  //colours
+    -50.0f, -50.0f, -50.0f,   1.0f, 1.0f, 1.0f,
+    +50.0f, -50.0f, -50.0f,   1.0f, 1.0f, 1.0f,
+    -50.0f, +50.0f, -50.0f,   1.0f, 1.0f, 1.0f,
+    +50.0f, +50.0f, -50.0f,   1.0f, 1.0f, 1.0f,
+    -50.0f, -50.0f, +50.0f,   0.0f, 0.0f, 0.0f,
+    +50.0f, -50.0f, +50.0f,   0.0f, 0.0f, 0.0f,
+    -50.0f, +50.0f, +50.0f,   0.0f, 0.0f, 0.0f,
+    +50.0f, +50.0f, +50.0f,   0.0f, 0.0f, 0.0f,
+};
+ 
 unsigned int indicies [] = {
     0, 1, 2,
     1, 2, 3,
