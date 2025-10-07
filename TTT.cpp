@@ -3,11 +3,11 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-//#include <vector>
 #include <stdint.h>
 
 #include "src/include/glad/gl.h"
 #include "src/include/GLFW/glfw3.h"
+
 #include "vertexdata.h"
 #include "trinkets.hpp"
 
@@ -43,7 +43,19 @@ float movSpeed;
 
 double frametime;
 unsigned int buffer;
+
+unsigned int fps;
+double fpsOldTime;
 //Functions-------------------------------------------------------------
+void fpstest(){
+    fps++;
+    if (fpsOldTime <= glfwGetTime() - 1){
+        printf("%i\n", fps);
+        fps = 0;
+        fpsOldTime = glfwGetTime();
+    }
+}
+
 void boundWalls(){
     if (tankpos.x > 750.0f){tankpos.x -= tankpos.x - 750.0f;}
     if (tankpos.x < -750.0f){tankpos.x -= tankpos.x + 750.0f;}
@@ -218,9 +230,9 @@ int main() { //---------------------------------------------------------
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 12);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
-    window = glfwCreateWindow(windowWidth, windowHeight, "Tiny Tanks", NULL, NULL);  //GLFW
+    window = glfwCreateWindow(windowWidth, windowHeight, "Tiny Toy Tanks", NULL, NULL);  //GLFW
     if (!window){
 
         printf("window failed to create!");
@@ -235,7 +247,7 @@ int main() { //---------------------------------------------------------
         return 0;
     }
 
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     //OpenGL buffer binding
     unsigned int VAO;
@@ -260,6 +272,12 @@ int main() { //---------------------------------------------------------
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glm::mat4 proj = glm::perspective(glm::radians(90.0f), float(windowWidth) / float(windowHeight), 0.1f, 12800.0f);
     glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1100.0f));
@@ -287,15 +305,15 @@ int main() { //---------------------------------------------------------
     glEnable(GL_MULTISAMPLE);  
 
     frametime = glfwGetTime();
+    fpsOldTime = glfwGetTime();
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
         while (glfwGetTime() - targetFrameTime >= frametime){
 
-
             gameloop();
             frametime += targetFrameTime;
         }
-        
+        fpstest();
         model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1])));
         model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
