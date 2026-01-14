@@ -33,8 +33,8 @@ const double targetFrameTime = 1.0 / 180.0;
 double squareRot;
 double squareRotGoal;
 
-int windowWidth = 1920;
-int windowHeight = 1080;
+// int windowWidth = 1920;
+// int windowHeight = 1080;
 glm::vec2 thrust = glm::vec2(0.0f, 0.0f);
 glm::vec2 tankpos = glm::vec2(0.0f, 0.0f);
 glm::vec2 slide = glm::vec2(0.0f, 0.0f);
@@ -232,7 +232,10 @@ int main() { //---------------------------------------------------------
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    window = glfwCreateWindow(windowWidth, windowHeight, "Tiny Toy Tanks", NULL, NULL);  //GLFW
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
+
+    window = glfwCreateWindow(mode->width, mode->height, "Tiny Toy Tanks", NULL, NULL);  //GLFW
     if (!window){
 
         printf("window failed to create!");
@@ -240,6 +243,8 @@ int main() { //---------------------------------------------------------
         return 0;
     }
     glfwMakeContextCurrent(window);
+
+    //glfwSetWindowSize(window, mode->width, mode->height);
 
     // Initialize GLAD
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
@@ -279,7 +284,7 @@ int main() { //---------------------------------------------------------
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::mat4 proj = glm::perspective(glm::radians(90.0f), float(windowWidth) / float(windowHeight), 0.1f, 12800.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(90.0f), float(mode->width) / float(mode->height), 0.1f, 12800.0f);
     glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1100.0f));
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f));
     view = glm::rotate(view, glm::radians(80.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -306,6 +311,7 @@ int main() { //---------------------------------------------------------
 
     frametime = glfwGetTime();
     fpsOldTime = glfwGetTime();
+
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
         while (glfwGetTime() - targetFrameTime >= frametime){
@@ -322,7 +328,7 @@ int main() { //---------------------------------------------------------
 
         // Render!!
         glfwPollEvents();
-        glClearColor(0.1,0.1,0.1,1.0);
+        glClearColor(0.05,0.05,0.1,1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawObject(glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1]))), buffer, IBO);
         glfwSwapBuffers(window);

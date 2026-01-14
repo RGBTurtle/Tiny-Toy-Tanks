@@ -31,7 +31,7 @@ class mesh{
         std::vector<texture>      textures;
 
         void Draw(unsigned int shader){
-            
+            //define later pwease
         };
 
     private:
@@ -89,5 +89,5 @@ unsigned int indicies [] = {
     2, 3, 6,
     3, 6, 7,
     4, 5, 6,
-    5, 6, 7  
+    5, 6, 7 
 };
