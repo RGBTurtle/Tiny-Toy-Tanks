@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <vector>
 #include <stdio.h>
 #include <string>
@@ -10,6 +11,8 @@
 
 #include "vertexdata.h"
 #include "trinkets.hpp"
+
+#include "shaderMaker.hpp"
 
 #include "src/include/glm/glm.hpp"
 #include "src/include/glm/gtc/matrix_transform.hpp"
@@ -33,12 +36,12 @@ const double targetFrameTime = 1.0 / 180.0;
 double squareRot;
 double squareRotGoal;
 
-// int windowWidth = 1920;
-// int windowHeight = 1080;
+//int windowWidth = 1920;
+//int windowHeight = 1080;
 glm::vec2 thrust = glm::vec2(0.0f, 0.0f);
 glm::vec2 tankpos = glm::vec2(0.0f, 0.0f);
 glm::vec2 slide = glm::vec2(0.0f, 0.0f);
-double squareRotSpeed = 0.006 * M_PI;
+double squareRotSpeed = 0.008 * M_PI;
 float movSpeed;
 
 double frametime;
@@ -65,7 +68,6 @@ void boundWalls(){
 
 
 void tankTurnFasterFinder() {
-    //NOT CHASE ROTATE FIX
     if (abs(squareRot - squareRotGoal) > M_PI) { 
         if (abs(squareRot - squareRotGoal + M_PI * 2) > abs(squareRot - squareRotGoal - M_PI * 2)) { squareRot = squareRot - M_PI * 2; } else { squareRot = squareRot + M_PI * 2; } 
     }
@@ -75,23 +77,24 @@ void tankTurnFasterFinder() {
 
     if (squareRot > squareRotGoal + squareRotSpeed) {
         squareRot -= squareRotSpeed;
-        movSpeed -= 12;
+        movSpeed *= 0.25;
     } else if (squareRot < squareRotGoal - squareRotSpeed) {
         squareRot += squareRotSpeed;
-        movSpeed -= 12;
+        movSpeed *= 0.25;
     } else {squareRot = squareRotGoal;}
 };
 
 void movHandle(){
     movSpeed = 15;
     //proform all additive movement buffs
-    if (goldenRodDust.have){movSpeed += 3;}
+    if (goldenRodDust.have){movSpeed += goldenRodDustCoefficiant;}
 
 
     //proform all multiplicative movement buffs
-    if (supercharger.have){movSpeed *= 1.15;}
+    if (supercharger.have){movSpeed *= superchargerCoefficiant;}
     
 
+    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS){movSpeed = 7.5;}
     //-----
     if (glm::length(thrust) > 0.0f){thrust = glm::normalize(thrust);}
     squareRotGoal = atan2(thrust.x, thrust.y);
@@ -109,83 +112,6 @@ void gameloop(){
     movHandle();
 }
 
-
-struct shader_program_source {
-    std::string VertexSource;
-    std::string FragmentSource;
-};
-
-
-static shader_program_source parseshader(const std::string file_path){
-    std::ifstream stream(file_path);
-
-    enum class shadertype
-    {
-        NONE = -1, VERTEX = 0, FRAGMENT = 1
-    };
-
-    std::string line;
-    std::stringstream ss[2];
-    shadertype type = shadertype::NONE;
-    while (std::getline(stream, line)){
-
-        if (line.find("#shader") != std::string::npos)
-        {
-            if (line.find("vertex") != std::string::npos){
-                type = shadertype::VERTEX;
-            }else if (line.find("fragment") != std::string::npos){
-                type = shadertype::FRAGMENT;
-            }
-        }else{
-            ss[int(type)] << line << '\n';
-        }
-    }
-    glm::mat4x4 projection;
-
-    return { ss[0].str(), ss[1].str() };
-}
-
-static unsigned int compileshader(unsigned int type, const std::string& source){
-    unsigned int id = glCreateShader(type);
-    const char* src = &source[0];
-    glShaderSource(id, 1, &src, nullptr);
-    glCompileShader(id);
-
-    int result;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-
-    if (!result){
-        int length;
-        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-        char message[length];
-        glGetShaderInfoLog(id, length, &length, message);
-        printf("failed to compile shader :)");
-        printf("%s", message);
-
-        glDeleteShader(id);
-        return 0;
-    };
-
-    return id;
-};
-
-static unsigned int createshader(const std::string& vertexshader, const std::string& fragmentshader){
-    unsigned int program = glCreateProgram();
-    unsigned int vs = compileshader(GL_VERTEX_SHADER, vertexshader);
-    unsigned int fs = compileshader(GL_FRAGMENT_SHADER, fragmentshader);
-
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-
-    glLinkProgram(program);
-    glValidateProgram(program);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-    return program;
-};
-
 void error_callback(int error, const char* description) //GLFW
 {
     fprintf(stderr, "Error: %s\n", description);
@@ -201,12 +127,6 @@ void pollKeys(){
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){supercharger.have, goldenRodDust.have = 1;}
 }
 
-
-
-
-
-
-
 void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib){
     MVP = proj * view * objmodel;
     glUniformMatrix4fv(glGetUniformLocation(shader, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
@@ -214,9 +134,6 @@ void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 }
-
-
-
 
 int main() { //---------------------------------------------------------
     //intialize GLFW
@@ -230,7 +147,7 @@ int main() { //---------------------------------------------------------
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 2);
 
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
@@ -304,7 +221,7 @@ int main() { //---------------------------------------------------------
 
     glUniformMatrix4fv(location, 1, GL_FALSE, &MVP[0][0]);
  
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);  
