@@ -4,7 +4,6 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <stdint.h>
 
 #include "src/include/glad/gl.h"
 #include "src/include/GLFW/glfw3.h"
@@ -207,17 +206,15 @@ int main() { //---------------------------------------------------------
     view = glm::rotate(view, glm::radians(80.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     glm::mat4 MVP = proj * view * model;
-    //uniforms
 
 
-    
     //create shaders
-    shader_program_source source = parseshader("res/shaders/Basic.glsl");
+    Shader shader("res/shaders/Basic.glsl");
+    shader.use();
 
-    unsigned int shader = createshader(source.VertexSource, source.FragmentSource);
-    glUseProgram(shader);
 
-    GLint location = glGetUniformLocation(shader, "u_MVP");
+
+    GLint location = glGetUniformLocation(shader.ID, "u_MVP");
 
     glUniformMatrix4fv(location, 1, GL_FALSE, &MVP[0][0]);
  
@@ -237,11 +234,12 @@ int main() { //---------------------------------------------------------
             frametime += targetFrameTime;
         }
         fpstest();
+
         model = glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1])));
         model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
         MVP = proj * view * model;
-        glUniformMatrix4fv(glGetUniformLocation(shader, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shader.ID, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
 
         // Render!!
         glfwPollEvents();
@@ -251,7 +249,7 @@ int main() { //---------------------------------------------------------
         glfwSwapBuffers(window);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    glDeleteProgram(shader);
+    glDeleteProgram(shader.ID);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;

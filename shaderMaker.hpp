@@ -1,4 +1,3 @@
-
 struct shader_program_source {
     std::string VertexSource;
     std::string FragmentSource;
@@ -73,4 +72,30 @@ static unsigned int createshader(const std::string& vertexshader, const std::str
     glDeleteShader(fs);
 
     return program;
+};
+
+struct Shader{
+    unsigned int ID;
+
+    Shader(const std::string file_path){
+        shader_program_source source = parseshader(file_path);
+        ID = createshader(source.VertexSource, source.FragmentSource);
+    }
+
+    void use(){
+        glUseProgram(ID);
+    }
+
+    void setFloat(const std::string &name, float value) const{
+        glUniform1f(glGetUniformLocation(ID, name.c_str()), value); 
+    }
+
+    void setInt(const std::string &name, int value) const{
+        glUniform1f(glGetUniformLocation(ID, name.c_str()), value); 
+    }   
+
+    void setBool(const std::string &name, bool value) const{
+        glUniform1f(glGetUniformLocation(ID, name.c_str()), int(value)); 
+    }
+
 };
