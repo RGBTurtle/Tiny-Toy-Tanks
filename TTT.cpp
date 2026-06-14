@@ -22,7 +22,7 @@
 //stucts/classes
 
 //#Defines--------------------------------------------------------------
-unsigned int shader;
+//Shader shader("res/shaders/Basic.glsl");
 glm::mat4 proj;
 glm::mat4 view;
 glm::mat4 MVP;
@@ -76,10 +76,10 @@ void tankTurnFasterFinder() {
 
     if (squareRot > squareRotGoal + squareRotSpeed) {
         squareRot -= squareRotSpeed;
-        movSpeed *= 0.25;
+        movSpeed *= 0.2;
     } else if (squareRot < squareRotGoal - squareRotSpeed) {
         squareRot += squareRotSpeed;
-        movSpeed *= 0.25;
+        movSpeed *= 0.2;
     } else {squareRot = squareRotGoal;}
 };
 
@@ -119,16 +119,17 @@ void error_callback(int error, const char* description) //GLFW
 //Keys------------------------------------------------------------------
 void pollKeys(){
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){glfwSetWindowShouldClose(window, GLFW_TRUE);}
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){thrust.y =  1;}
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){thrust.x = -1;}
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){thrust.y = -1;}
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){thrust.x =  1;}
+    thrust = glm::vec2(0,0);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){thrust.y += 1;}
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){thrust.x -= 1;}
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){thrust.y -= 1;}
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){thrust.x += 1;}
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){supercharger.have, goldenRodDust.have = 1;}
 }
 
-void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib){
+void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib, Shader shader){
     MVP = proj * view * objmodel;
-    glUniformMatrix4fv(glGetUniformLocation(shader, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(shader.ID, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
     glBindVertexArray(va);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
@@ -136,16 +137,17 @@ void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib){
 
 int main() { //---------------------------------------------------------
     //intialize GLFW
-
     if (!glfwInit()){   //GLFW
 
         printf("glfw failed to initialize!");
         return 0;
     }
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
     glfwWindowHint(GLFW_SAMPLES, 2);
 
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
@@ -160,7 +162,7 @@ int main() { //---------------------------------------------------------
     }
     glfwMakeContextCurrent(window);
 
-    //glfwSetWindowSize(window, mode->width, mode->height);
+    glfwSetWindowSize(window, mode->width, mode->height);
 
     // Initialize GLAD
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
@@ -186,6 +188,7 @@ int main() { //---------------------------------------------------------
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+
     unsigned int IBO;
     glGenBuffers(1, &IBO);  
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -194,7 +197,8 @@ int main() { //---------------------------------------------------------
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -212,8 +216,6 @@ int main() { //---------------------------------------------------------
     Shader shader("res/shaders/Basic.glsl");
     shader.use();
 
-
-
     GLint location = glGetUniformLocation(shader.ID, "u_MVP");
 
     glUniformMatrix4fv(location, 1, GL_FALSE, &MVP[0][0]);
@@ -223,11 +225,14 @@ int main() { //---------------------------------------------------------
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);  
 
+    glClearColor(0.05,0.05,0.1,1.0);
+
     frametime = glfwGetTime();
     fpsOldTime = glfwGetTime();
 
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         while (glfwGetTime() - targetFrameTime >= frametime){
 
             gameloop();
@@ -239,13 +244,17 @@ int main() { //---------------------------------------------------------
         model = glm::rotate(model, float(-squareRot), glm::vec3(0.0f, 1.0f, 0.0f));
 
         MVP = proj * view * model;
-        glUniformMatrix4fv(glGetUniformLocation(shader.ID, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
-
+        
         // Render!!
         glfwPollEvents();
-        glClearColor(0.05,0.05,0.1,1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawObject(glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1]))), buffer, IBO);
+        
+        //drawObject(glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1]))), buffer, IBO, shader);
+        glUniformMatrix4fv(glGetUniformLocation(shader.ID, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
+        drawObject(model, buffer, IBO, shader);
+        GLenum err = glGetError();
+        if (err != GL_NO_ERROR){
+            printf("GL Error: %i", err);
+        }
         glfwSwapBuffers(window);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
