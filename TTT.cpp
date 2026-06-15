@@ -8,10 +8,8 @@
 #include "src/include/glad/gl.h"
 #include "src/include/GLFW/glfw3.h"
 
-#include "vertexdata.h"
+#include "vertexdata.hpp"
 #include "trinkets.hpp"
-
-#include "shaderMaker.hpp"
 
 #include "src/include/glm/glm.hpp"
 #include "src/include/glm/gtc/matrix_transform.hpp"
@@ -19,6 +17,8 @@
 #include "src/include/assimp/Importer.hpp"
 #include "src/include/assimp/scene.h"
 #include "src/include/assimp/postprocess.h"
+
+#include "shaderMaker.hpp"
 //stucts/classes
 
 //#Defines--------------------------------------------------------------
@@ -128,11 +128,9 @@ void pollKeys(){
 }
 
 void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib, Shader shader){
-    MVP = proj * view * objmodel;
-    glUniformMatrix4fv(glGetUniformLocation(shader.ID, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
+    shader.setMatrix("u_MVP", MVP);
     glBindVertexArray(va);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
 int main() { //---------------------------------------------------------
@@ -230,6 +228,8 @@ int main() { //---------------------------------------------------------
     frametime = glfwGetTime();
     fpsOldTime = glfwGetTime();
 
+
+
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     while (!glfwWindowShouldClose(window)){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -247,14 +247,8 @@ int main() { //---------------------------------------------------------
         
         // Render!!
         glfwPollEvents();
-        
-        //drawObject(glm::translate(glm::mat4(1.0f), glm::vec3(float(tankpos[0]), sin(glfwGetTime()*4)*6, float(-tankpos[1]))), buffer, IBO, shader);
-        glUniformMatrix4fv(glGetUniformLocation(shader.ID, "u_MVP"), 1, GL_FALSE, &MVP[0][0]);
+
         drawObject(model, buffer, IBO, shader);
-        GLenum err = glGetError();
-        if (err != GL_NO_ERROR){
-            printf("GL Error: %i", err);
-        }
         glfwSwapBuffers(window);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
