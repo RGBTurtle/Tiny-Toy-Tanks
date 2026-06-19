@@ -25,17 +25,19 @@ class mesh{
         this->textures = textures;
         setupMesh();
     }
+
     public:
         std::vector<vertex>       vertices;
         std::vector<unsigned int> indices;
         std::vector<texture>      textures;
+        unsigned int VAO;
 
-        void Draw(unsigned int shader){
+        void Draw(Shader shader){
             //define later pwease OWO
         };
 
     private:
-        unsigned int VAO, VBO, EBO;
+        unsigned int VBO, EBO;
 
         void setupMesh(){
             glGenVertexArrays(1, &VAO);

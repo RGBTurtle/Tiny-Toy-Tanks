@@ -127,8 +127,7 @@ void pollKeys(){
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){supercharger.have, goldenRodDust.have = 1;}
 }
 
-void drawObject(glm::mat4 objmodel, unsigned int va, unsigned int ib, Shader shader){
-    shader.setMatrix("u_MVP", MVP);
+void drawObject(unsigned int va, unsigned int ib, Shader shader){
     glBindVertexArray(va);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
@@ -247,8 +246,8 @@ int main() { //---------------------------------------------------------
         
         // Render!!
         glfwPollEvents();
-
-        drawObject(model, buffer, IBO, shader);
+        shader.setMatrix("u_MVP", MVP);
+        drawObject(buffer, IBO, shader);
         glfwSwapBuffers(window);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
